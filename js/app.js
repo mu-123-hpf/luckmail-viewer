@@ -1,7 +1,6 @@
 // ===== LuckMail Viewer - Core App =====
-// Use relative proxy path on Cloudflare, fallback to direct API for local dev
-const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const API_BASE = IS_LOCAL ? 'https://mails.luckyous.com/api/v1/openapi/email/token' : '/api';
+// API proxy to avoid CORS issues
+const API_BASE = 'https://luckmail-api.luckymail.workers.dev';
 const STORAGE_KEY = 'luckmail_tokens';
 
 // ===== State =====
