@@ -301,24 +301,27 @@ async function openMail(index) {
         codeSection.classList.add('hidden');
     }
 
-    // Body - try to load detail if we have message_id
+    // Body - try to load detail (API uses 'id' field)
     const body = document.getElementById('detailBody');
+    const mailId = mail.id || mail.message_id;
     if (mail.html_body && mail.html_body.length > 20) {
         renderHtmlBody(body, mail.html_body);
-    } else if (mail.body) {
-        body.textContent = mail.body;
-    } else if (mail.message_id && state.activeToken) {
+    } else if (mailId && state.activeToken) {
         body.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>加载邮件内容...</p></div>';
         try {
-            const detail = await fetchMailDetail(state.activeToken, mail.message_id);
-            if (detail.html_body && detail.html_body.length > 20) {
-                renderHtmlBody(body, detail.html_body);
+            const detailData = await fetchMailDetail(state.activeToken, mailId);
+            if (detailData.html_body && detailData.html_body.length > 20) {
+                renderHtmlBody(body, detailData.html_body);
+            } else if (detailData.body) {
+                body.textContent = detailData.body;
             } else {
-                body.textContent = detail.body || '(无内容)';
+                body.textContent = '(无内容)';
             }
         } catch {
             body.textContent = mail.body || '(无法加载详情)';
         }
+    } else if (mail.body) {
+        body.textContent = mail.body;
     } else {
         body.textContent = '(无内容)';
     }
