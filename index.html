@@ -1,13 +1,566 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LuckMail Viewer — 邮箱收件箱查看器</title>
-    <meta name="description" content="LuckMail 邮箱收件箱在线查看器，通过 Token 查看邮件和验证码">
+    <title>LuckMail Viewer 鈥?閭鏀朵欢绠辨煡鐪嬪櫒</title>
+    <meta name="description" content="LuckMail 閭鏀朵欢绠卞湪绾挎煡鐪嬪櫒锛岄€氳繃 Token 鏌ョ湅閭欢鍜岄獙璇佺爜">
     <link rel="preconnect" href="https://fonts.loli.net" crossorigin>
     <link href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <style>/* ===== CSS Variables & Reset ===== */
+:root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-card: rgba(17, 24, 39, 0.8);
+    --bg-card-hover: rgba(31, 41, 55, 0.9);
+    --bg-glass: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.15);
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --accent: #818cf8;
+    --accent-light: #a5b4fc;
+    --accent-bg: rgba(129, 140, 248, 0.12);
+    --success: #34d399;
+    --success-bg: rgba(52, 211, 153, 0.12);
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, 0.12);
+    --code-bg: rgba(129, 140, 248, 0.08);
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+    --transition: 0.2s ease;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+[data-theme="light"] {
+    --bg-primary: #f0f2f5;
+    --bg-secondary: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --bg-card-hover: rgba(255, 255, 255, 1);
+    --bg-glass: rgba(255, 255, 255, 0.7);
+    --border: rgba(0, 0, 0, 0.08);
+    --border-hover: rgba(0, 0, 0, 0.15);
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #9ca3af;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-bg: rgba(99, 102, 241, 0.1);
+    --success-bg: rgba(52, 211, 153, 0.1);
+    --danger-bg: rgba(248, 113, 113, 0.1);
+    --code-bg: rgba(99, 102, 241, 0.06);
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 15px; }
+body {
+    font-family: var(--font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* ===== Background Effects ===== */
+.bg-gradient {
+    position: fixed; inset: 0; z-index: -2;
+    background: var(--bg-primary);
+}
+.bg-orb {
+    position: fixed; z-index: -1;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.3;
+    animation: orbFloat 20s ease-in-out infinite;
+}
+.bg-orb-1 { width: 500px; height: 500px; background: #6366f1; top: -100px; right: -100px; }
+.bg-orb-2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -50px; left: -100px; animation-delay: -7s; }
+.bg-orb-3 { width: 300px; height: 300px; background: #06b6d4; top: 50%; left: 50%; animation-delay: -14s; }
+
+[data-theme="light"] .bg-orb { opacity: 0.12; }
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* ===== Header ===== */
+.header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 1.1rem; color: var(--accent);
+}
+
+/* ===== Buttons ===== */
+.btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border: none; border-radius: var(--radius-sm);
+    font-family: var(--font); font-size: 0.87rem; font-weight: 500;
+    cursor: pointer; transition: all var(--transition);
+    white-space: nowrap;
+}
+.btn-primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+.btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-outline {
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+.btn-outline:hover { border-color: var(--border-hover); background: var(--bg-glass); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg-glass); color: var(--text-primary); }
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+.btn-xs { padding: 4px 8px; font-size: 0.75rem; }
+.icon-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: none; border-radius: var(--radius-sm);
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; transition: all var(--transition);
+}
+.icon-btn:hover { background: var(--bg-glass); color: var(--text-primary); }
+.btn-copy {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border: none; border-radius: 6px;
+    background: var(--bg-glass); color: var(--text-muted);
+    cursor: pointer; transition: all var(--transition);
+}
+.btn-copy:hover { background: var(--accent-bg); color: var(--accent); }
+
+/* ===== Theme Toggle ===== */
+[data-theme="light"] .icon-sun { display: none; }
+[data-theme="light"] .icon-moon { display: block; }
+.icon-moon { display: none; }
+
+/* ===== Main Layout ===== */
+.main-layout {
+    display: flex; height: calc(100vh - 57px);
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: 280px; min-width: 280px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.sidebar-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.sidebar-header h3 { font-size: 0.9rem; font-weight: 600; }
+.badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 6px;
+    background: var(--accent-bg); color: var(--accent);
+    border-radius: 11px; font-size: 0.75rem; font-weight: 600;
+}
+.email-list {
+    flex: 1; overflow-y: auto; padding: 8px;
+}
+.email-list::-webkit-scrollbar { width: 4px; }
+.email-list::-webkit-scrollbar-track { background: transparent; }
+.email-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.email-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer; transition: all var(--transition);
+    position: relative;
+}
+.email-item:hover { background: var(--bg-card-hover); }
+.email-item.active { background: var(--accent-bg); }
+.email-item.active .email-item-dot { background: var(--accent); }
+
+.email-item-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success); flex-shrink: 0;
+}
+.email-item-dot.offline { background: var(--text-muted); }
+.email-item-info { flex: 1; min-width: 0; }
+.email-item-label {
+    font-size: 0.85rem; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.email-item-addr {
+    font-size: 0.75rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.email-item-delete {
+    opacity: 0; width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent;
+    color: var(--danger); cursor: pointer;
+    border-radius: 4px; transition: all var(--transition);
+}
+.email-item:hover .email-item-delete { opacity: 1; }
+.email-item-delete:hover { background: var(--danger-bg); }
+
+.sidebar-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px; color: var(--text-muted); padding: 24px;
+    text-align: center;
+}
+.sidebar-empty p { font-size: 0.85rem; }
+
+/* ===== Content ===== */
+.content {
+    flex: 1; overflow-y: auto; padding: 24px;
+}
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Welcome */
+.welcome-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; gap: 16px; text-align: center;
+}
+.welcome-icon { color: var(--accent); opacity: 0.5; margin-bottom: 8px; }
+.welcome-state h2 { font-size: 1.5rem; font-weight: 700; }
+.welcome-state p { color: var(--text-secondary); max-width: 400px; }
+
+/* Loading */
+.loading-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 60%; gap: 16px;
+}
+.spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Error */
+.error-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 60%; gap: 12px; text-align: center;
+    color: var(--danger);
+}
+.error-state h3 { font-size: 1.1rem; }
+.error-state p { color: var(--text-secondary); }
+
+/* ===== Code Card ===== */
+.code-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.08));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+.code-card-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.85rem; color: var(--accent-light);
+    margin-bottom: 12px;
+}
+.code-card-header .btn { margin-left: auto; }
+.code-card-icon {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-bg); border-radius: 8px;
+    color: var(--accent);
+}
+.code-display {
+    font-size: 2.2rem; font-weight: 800;
+    letter-spacing: 0.15em; color: var(--text-primary);
+    display: flex; align-items: center; gap: 12px;
+    user-select: all;
+}
+.code-placeholder {
+    font-size: 1rem; font-weight: 400;
+    color: var(--text-muted); letter-spacing: normal;
+}
+.code-value { cursor: pointer; }
+.code-value:hover { color: var(--accent); }
+.code-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; }
+
+@keyframes codeFlash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+.code-flash { animation: codeFlash 0.4s ease 3; }
+
+/* ===== Email Info Bar ===== */
+.email-info-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    padding: 14px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+}
+.email-info-address {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.9rem; font-weight: 500;
+}
+.email-info-stats {
+    display: flex; align-items: center; gap: 16px;
+}
+.stat-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.8rem; color: var(--text-secondary);
+}
+
+/* ===== Toolbar ===== */
+.toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+}
+.toolbar h3 { font-size: 1rem; font-weight: 600; }
+.toolbar-right { display: flex; align-items: center; gap: 12px; }
+
+/* Toggle switch */
+.toggle-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.8rem; color: var(--text-secondary);
+    cursor: pointer; user-select: none;
+}
+.toggle-label input { display: none; }
+.toggle-switch {
+    width: 36px; height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    position: relative; transition: background var(--transition);
+}
+.toggle-switch::after {
+    content: ''; position: absolute;
+    width: 16px; height: 16px;
+    background: #fff; border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform var(--transition);
+}
+.toggle-label input:checked + .toggle-switch {
+    background: var(--accent);
+}
+.toggle-label input:checked + .toggle-switch::after {
+    transform: translateX(16px);
+}
+
+/* ===== Mail List ===== */
+.mail-list { display: flex; flex-direction: column; gap: 4px; }
+.mail-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer; transition: all var(--transition);
+}
+.mail-item:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+}
+.mail-item-icon {
+    width: 36px; height: 36px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-bg); border-radius: 10px;
+    color: var(--accent);
+}
+.mail-item-icon.has-code { background: var(--success-bg); color: var(--success); }
+.mail-item-body { flex: 1; min-width: 0; }
+.mail-item-subject {
+    font-size: 0.9rem; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+.mail-item-from {
+    font-size: 0.78rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mail-item-right {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 6px; flex-shrink: 0;
+}
+.mail-item-time { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+.mail-item-code {
+    font-size: 0.8rem; font-weight: 700;
+    color: var(--accent); background: var(--code-bg);
+    padding: 2px 8px; border-radius: 6px;
+    letter-spacing: 0.08em;
+}
+.mail-empty {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 24px; gap: 12px;
+    color: var(--text-muted);
+}
+
+/* ===== Mail Detail ===== */
+.mail-detail { animation: fadeIn 0.3s ease; }
+.back-btn { margin-bottom: 16px; }
+.mail-detail-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+.mail-detail-header h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+.mail-detail-meta {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 0.85rem; color: var(--text-secondary);
+}
+.mail-detail-code {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, var(--accent-bg), rgba(139, 92, 246, 0.08));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: var(--radius);
+    padding: 12px 20px; margin-bottom: 20px;
+}
+.detail-code-label { font-size: 0.85rem; color: var(--accent-light); }
+.detail-code-value {
+    font-size: 1.5rem; font-weight: 800;
+    letter-spacing: 0.12em; color: var(--text-primary);
+    user-select: all;
+}
+.mail-detail-body {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    font-size: 0.9rem; line-height: 1.8;
+    word-break: break-word;
+    overflow: auto; max-height: calc(100vh - 320px);
+}
+.mail-detail-body iframe {
+    width: 100%; border: none; min-height: 400px;
+    background: #fff; border-radius: 8px;
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+.modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: 90%; max-width: 440px;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease;
+}
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px 0;
+}
+.modal-header h3 { font-size: 1.1rem; font-weight: 600; }
+.modal-body { padding: 20px 24px; }
+.modal-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 0 24px 20px;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label {
+    display: block; font-size: 0.85rem; font-weight: 500;
+    margin-bottom: 6px;
+}
+.form-group input {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font); font-size: 0.9rem;
+    outline: none; transition: border-color var(--transition);
+}
+.form-group input:focus { border-color: var(--accent); }
+.form-group input::placeholder { color: var(--text-muted); }
+.form-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+/* ===== Toast ===== */
+.toast-container {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 2000;
+}
+.toast {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    font-size: 0.85rem;
+    animation: slideIn 0.3s ease;
+    max-width: 360px;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--accent); }
+
+/* ===== Animations ===== */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ===== Utilities ===== */
+.hidden { display: none !important; }
+.text-muted { color: var(--text-muted); }
+
+/* ===== Mobile ===== */
+.mobile-sidebar-toggle {
+    display: none; position: fixed;
+    bottom: 24px; left: 24px;
+    width: 48px; height: 48px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 50%;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+    cursor: pointer; z-index: 90;
+    align-items: center; justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed; left: -300px;
+        top: 57px; bottom: 0;
+        z-index: 80; transition: left 0.3s ease;
+        background: var(--bg-secondary);
+    }
+    .sidebar.open { left: 0; }
+    .mobile-sidebar-toggle { display: flex; }
+    .content { padding: 16px; }
+    .code-display { font-size: 1.6rem; }
+    .email-info-bar { flex-direction: column; align-items: flex-start; }
+}
+</style>
 </head>
 <body>
     <!-- Background animated elements -->
@@ -29,7 +582,7 @@
                 </div>
             </div>
             <div class="header-right">
-                <button id="themeToggle" class="icon-btn" title="切换主题">
+                <button id="themeToggle" class="icon-btn" title="鍒囨崲涓婚">
                     <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                     </svg>
@@ -41,7 +594,7 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
-                    添加邮箱
+                    娣诲姞閭
                 </button>
             </div>
         </header>
@@ -51,7 +604,7 @@
             <!-- Sidebar: Email list -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
-                    <h3>我的邮箱</h3>
+                    <h3>鎴戠殑閭</h3>
                     <span class="badge" id="emailCount">0</span>
                 </div>
                 <div class="email-list" id="emailList">
@@ -62,8 +615,8 @@
                         <rect x="2" y="4" width="20" height="16" rx="3"/>
                         <polyline points="22,7 12,13 2,7"/>
                     </svg>
-                    <p>还没有添加邮箱</p>
-                    <p class="text-muted">点击「添加邮箱」开始</p>
+                    <p>杩樻病鏈夋坊鍔犻偖绠?/p>
+                    <p class="text-muted">鐐瑰嚮銆屾坊鍔犻偖绠便€嶅紑濮?/p>
                 </div>
             </aside>
 
@@ -77,20 +630,19 @@
                             <polyline points="22,7 12,13 2,7"/>
                         </svg>
                     </div>
-                    <h2>欢迎使用 LuckMail Viewer</h2>
-                    <p>添加你的邮箱 Token，即可查看收件箱和验证码</p>
+                    <h2>娆㈣繋浣跨敤 LuckMail Viewer</h2>
+                    <p>娣诲姞浣犵殑閭 Token锛屽嵆鍙煡鐪嬫敹浠剁鍜岄獙璇佺爜</p>
                     <button class="btn btn-primary" onclick="showAddModal()">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        添加第一个邮箱
-                    </button>
+                        娣诲姞绗竴涓偖绠?                    </button>
                 </div>
 
                 <!-- Loading state -->
                 <div class="loading-state hidden" id="loadingState">
                     <div class="spinner"></div>
-                    <p>正在加载邮件...</p>
+                    <p>姝ｅ湪鍔犺浇閭欢...</p>
                 </div>
 
                 <!-- Error state -->
@@ -98,9 +650,9 @@
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
                     </svg>
-                    <h3>加载失败</h3>
-                    <p id="errorMessage">请检查 Token 是否正确</p>
-                    <button class="btn btn-outline" onclick="retryLoad()">重试</button>
+                    <h3>鍔犺浇澶辫触</h3>
+                    <p id="errorMessage">璇锋鏌?Token 鏄惁姝ｇ‘</p>
+                    <button class="btn btn-outline" onclick="retryLoad()">閲嶈瘯</button>
                 </div>
 
                 <!-- Inbox view -->
@@ -113,15 +665,15 @@
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                 </svg>
                             </div>
-                            <span>最新验证码</span>
-                            <button class="btn btn-ghost btn-xs" onclick="refreshInbox()" title="刷新">
+                            <span>鏈€鏂伴獙璇佺爜</span>
+                            <button class="btn btn-ghost btn-xs" onclick="refreshInbox()" title="鍒锋柊">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                                 </svg>
                             </button>
                         </div>
                         <div class="code-display" id="codeDisplay">
-                            <span class="code-placeholder">暂无验证码</span>
+                            <span class="code-placeholder">鏆傛棤楠岃瘉鐮?/span>
                         </div>
                         <div class="code-meta" id="codeMeta"></div>
                     </div>
@@ -132,8 +684,8 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="2" y="4" width="20" height="16" rx="3"/><polyline points="22,7 12,13 2,7"/>
                             </svg>
-                            <span id="currentEmailAddress">—</span>
-                            <button class="btn-copy" onclick="copyEmail()" title="复制邮箱地址">
+                            <span id="currentEmailAddress">鈥?/span>
+                            <button class="btn-copy" onclick="copyEmail()" title="澶嶅埗閭鍦板潃">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                                 </svg>
@@ -145,19 +697,19 @@
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                     <polyline points="22 4 12 14.01 9 11.01"/>
                                 </svg>
-                                <span id="emailStatus">检测中</span>
+                                <span id="emailStatus">妫€娴嬩腑</span>
                             </span>
                             <span class="stat-item">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                                 </svg>
-                                <span id="mailCount">0 封邮件</span>
+                                <span id="mailCount">0 灏侀偖浠?/span>
                             </span>
                             <span class="stat-item" id="projectBadge">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                                 </svg>
-                                <span id="projectName">—</span>
+                                <span id="projectName">鈥?/span>
                             </span>
                         </div>
                     </div>
@@ -165,19 +717,19 @@
                     <!-- Auto-refresh toggle -->
                     <div class="toolbar">
                         <div class="toolbar-left">
-                            <h3>收件箱</h3>
+                            <h3>鏀朵欢绠?/h3>
                         </div>
                         <div class="toolbar-right">
                             <label class="toggle-label">
                                 <input type="checkbox" id="autoRefreshToggle">
                                 <span class="toggle-switch"></span>
-                                <span>自动刷新 (30s)</span>
+                                <span>鑷姩鍒锋柊 (30s)</span>
                             </label>
                             <button class="btn btn-ghost btn-sm" onclick="refreshInbox()">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                                 </svg>
-                                刷新
+                                鍒锋柊
                             </button>
                         </div>
                     </div>
@@ -191,7 +743,7 @@
                             <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
                             <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
                         </svg>
-                        <p>收件箱为空</p>
+                        <p>鏀朵欢绠变负绌?/p>
                     </div>
                 </div>
 
@@ -201,19 +753,18 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                         </svg>
-                        返回收件箱
-                    </button>
+                        杩斿洖鏀朵欢绠?                    </button>
                     <div class="mail-detail-header">
-                        <h2 id="detailSubject">—</h2>
+                        <h2 id="detailSubject">鈥?/h2>
                         <div class="mail-detail-meta">
-                            <span id="detailFrom">—</span>
-                            <span id="detailDate">—</span>
+                            <span id="detailFrom">鈥?/span>
+                            <span id="detailDate">鈥?/span>
                         </div>
                     </div>
                     <div class="mail-detail-code hidden" id="detailCodeSection">
-                        <span class="detail-code-label">验证码</span>
-                        <span class="detail-code-value" id="detailCode">—</span>
-                        <button class="btn-copy" onclick="copyDetailCode()" title="复制验证码">
+                        <span class="detail-code-label">楠岃瘉鐮?/span>
+                        <span class="detail-code-value" id="detailCode">鈥?/span>
+                        <button class="btn-copy" onclick="copyDetailCode()" title="澶嶅埗楠岃瘉鐮?>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                             </svg>
@@ -238,7 +789,7 @@
     <div class="modal-overlay hidden" id="addModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>添加邮箱</h3>
+                <h3>娣诲姞閭</h3>
                 <button class="icon-btn" onclick="closeAddModal()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -247,19 +798,19 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="tokenInput">邮箱 Token</label>
-                    <input type="text" id="tokenInput" placeholder="粘贴你的邮箱 Token" autocomplete="off" spellcheck="false">
-                    <p class="form-hint">Token 由管理员提供，用于访问你的邮箱收件箱</p>
+                    <label for="tokenInput">閭 Token</label>
+                    <input type="text" id="tokenInput" placeholder="绮樿创浣犵殑閭 Token" autocomplete="off" spellcheck="false">
+                    <p class="form-hint">Token 鐢辩鐞嗗憳鎻愪緵锛岀敤浜庤闂綘鐨勯偖绠辨敹浠剁</p>
                 </div>
                 <div class="form-group">
-                    <label for="labelInput">备注名称 <span class="text-muted">(可选)</span></label>
-                    <input type="text" id="labelInput" placeholder="例如：工作邮箱、注册用" autocomplete="off">
+                    <label for="labelInput">澶囨敞鍚嶇О <span class="text-muted">(鍙€?</span></label>
+                    <input type="text" id="labelInput" placeholder="渚嬪锛氬伐浣滈偖绠便€佹敞鍐岀敤" autocomplete="off">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeAddModal()">取消</button>
+                <button class="btn btn-outline" onclick="closeAddModal()">鍙栨秷</button>
                 <button class="btn btn-primary" id="confirmAddBtn" onclick="confirmAddToken()">
-                    添加
+                    娣诲姞
                 </button>
             </div>
         </div>
@@ -268,6 +819,516 @@
     <!-- Toast container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="js/app.js"></script>
+    <script>// ===== LuckMail Viewer - Core App =====
+// API proxy to avoid CORS issues
+const API_BASE = 'https://luckmail-api.luckymail.workers.dev';
+const STORAGE_KEY = 'luckmail_tokens';
+
+// ===== State =====
+let state = {
+    tokens: [],          // [{token, label, address, alive}]
+    activeToken: null,
+    mails: [],
+    latestCode: null,
+    autoRefreshTimer: null,
+};
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+    loadTokens();
+    renderSidebar();
+    initTheme();
+    document.getElementById('addTokenBtn').addEventListener('click', showAddModal);
+    document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
+    document.getElementById('tokenInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') confirmAddToken();
+    });
+});
+
+// ===== Token Storage =====
+function loadTokens() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        state.tokens = data ? JSON.parse(data) : [];
+    } catch { state.tokens = []; }
+}
+
+function saveTokens() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tokens));
+}
+
+// ===== Sidebar Rendering =====
+function renderSidebar() {
+    const list = document.getElementById('emailList');
+    const empty = document.getElementById('sidebarEmpty');
+    const count = document.getElementById('emailCount');
+
+    count.textContent = state.tokens.length;
+
+    if (state.tokens.length === 0) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        showWelcome();
+        return;
+    }
+
+    empty.classList.add('hidden');
+    list.innerHTML = state.tokens.map((t, i) => `
+        <div class="email-item ${state.activeToken === t.token ? 'active' : ''}" 
+             onclick="selectEmail(${i})" id="email-item-${i}">
+            <div class="email-item-dot ${t.alive === false ? 'offline' : ''}"></div>
+            <div class="email-item-info">
+                <div class="email-item-label">${escHtml(t.label || '閭 ' + (i + 1))}</div>
+                <div class="email-item-addr">${escHtml(t.address || t.token.slice(0, 12) + '...')}</div>
+            </div>
+            <button class="email-item-delete" onclick="event.stopPropagation(); removeToken(${i})" title="绉婚櫎">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+}
+
+// ===== Add Token =====
+function showAddModal() {
+    document.getElementById('addModal').classList.remove('hidden');
+    document.getElementById('tokenInput').value = '';
+    document.getElementById('labelInput').value = '';
+    setTimeout(() => document.getElementById('tokenInput').focus(), 100);
+}
+
+function closeAddModal() {
+    document.getElementById('addModal').classList.add('hidden');
+}
+
+async function confirmAddToken() {
+    const token = document.getElementById('tokenInput').value.trim();
+    const label = document.getElementById('labelInput').value.trim();
+
+    if (!token) {
+        showToast('璇疯緭鍏?Token', 'error');
+        return;
+    }
+
+    if (state.tokens.some(t => t.token === token)) {
+        showToast('璇?Token 宸插瓨鍦?, 'error');
+        return;
+    }
+
+    const btn = document.getElementById('confirmAddBtn');
+    btn.disabled = true;
+    btn.textContent = '楠岃瘉涓?..';
+
+    try {
+        const info = await checkAlive(token);
+        const entry = {
+            token,
+            label: label || '',
+            address: info.email_address || '',
+            alive: info.alive,
+            project: info.project || '',
+            mailCount: info.mail_count || 0,
+        };
+        state.tokens.push(entry);
+        saveTokens();
+        closeAddModal();
+        renderSidebar();
+        selectEmail(state.tokens.length - 1);
+        showToast(`宸叉坊鍔? ${entry.address || 'OK'}`, 'success');
+    } catch (err) {
+        showToast('Token 楠岃瘉澶辫触: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '娣诲姞';
+    }
+}
+
+function removeToken(index) {
+    const t = state.tokens[index];
+    if (!confirm(`纭畾绉婚櫎銆?{t.label || t.address || 'Token'}銆嶏紵`)) return;
+    state.tokens.splice(index, 1);
+    saveTokens();
+    if (state.activeToken === t.token) {
+        state.activeToken = null;
+        stopAutoRefresh();
+        showWelcome();
+    }
+    renderSidebar();
+}
+
+// ===== Select Email =====
+async function selectEmail(index) {
+    const entry = state.tokens[index];
+    state.activeToken = entry.token;
+    renderSidebar();
+    await loadInbox(entry);
+}
+
+// ===== API Calls =====
+async function checkAlive(token) {
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(token)}/alive`);
+    const json = await res.json();
+    if (json.code !== 0) throw new Error(json.message || '璇锋眰澶辫触');
+    return json.data;
+}
+
+async function fetchCode(token) {
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(token)}/code`);
+    const json = await res.json();
+    if (json.code !== 0) return null;
+    return json.data;
+}
+
+async function fetchMails(token) {
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(token)}/mails`);
+    const json = await res.json();
+    if (json.code !== 0) throw new Error(json.message || '鑾峰彇閭欢鍒楄〃澶辫触');
+    return json.data;
+}
+
+async function fetchMailDetail(token, messageId) {
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(token)}/mails/${encodeURIComponent(messageId)}`);
+    const json = await res.json();
+    if (json.code !== 0) throw new Error(json.message || '鑾峰彇閭欢璇︽儏澶辫触');
+    return json.data;
+}
+
+// ===== Load Inbox =====
+async function loadInbox(entry) {
+    showLoading();
+    try {
+        // Parallel: get alive info + code + mails
+        const [aliveInfo, codeData, mailsData] = await Promise.all([
+            checkAlive(entry.token).catch(() => null),
+            fetchCode(entry.token).catch(() => null),
+            fetchMails(entry.token),
+        ]);
+
+        // Update entry info
+        if (aliveInfo) {
+            entry.address = aliveInfo.email_address || entry.address;
+            entry.alive = aliveInfo.alive;
+            entry.project = aliveInfo.project || '';
+            entry.mailCount = aliveInfo.mail_count || 0;
+            saveTokens();
+            renderSidebar();
+        }
+
+        state.mails = mailsData.mails || [];
+        state.latestCode = codeData;
+
+        showInbox(entry);
+    } catch (err) {
+        showError(err.message);
+    }
+}
+
+// ===== Render Inbox =====
+function showInbox(entry) {
+    hideAll();
+    document.getElementById('inboxView').classList.remove('hidden');
+
+    // Email info bar
+    document.getElementById('currentEmailAddress').textContent = entry.address || '鏈煡';
+    document.getElementById('emailStatus').textContent = entry.alive ? '鍦ㄧ嚎' : '绂荤嚎';
+    document.getElementById('emailStatus').style.color = entry.alive ? 'var(--success)' : 'var(--danger)';
+    document.getElementById('mailCount').textContent = `${state.mails.length} 灏侀偖浠禶;
+    document.getElementById('projectName').textContent = entry.project || '鈥?;
+
+    // Verification code
+    renderCode();
+
+    // Mail list
+    renderMailList();
+}
+
+function renderCode() {
+    const display = document.getElementById('codeDisplay');
+    const meta = document.getElementById('codeMeta');
+
+    if (state.latestCode && state.latestCode.code) {
+        const code = state.latestCode.code;
+        display.innerHTML = `<span class="code-value code-flash" onclick="copyCode('${escHtml(code)}')" title="鐐瑰嚮澶嶅埗">${escHtml(code)}</span>
+            <button class="btn-copy" onclick="copyCode('${escHtml(code)}')" title="澶嶅埗楠岃瘉鐮?>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+            </button>`;
+        const from = state.latestCode.from || '';
+        const subject = state.latestCode.subject || '';
+        meta.textContent = from ? `鏉ヨ嚜: ${from}  |  ${subject}` : subject;
+    } else {
+        display.innerHTML = '<span class="code-placeholder">鏆傛棤楠岃瘉鐮?鈥?绛夊緟 OpenAI 鍙戦€?..</span>';
+        meta.textContent = '';
+    }
+}
+
+function renderMailList() {
+    const list = document.getElementById('mailList');
+    const empty = document.getElementById('mailEmpty');
+
+    if (!state.mails || state.mails.length === 0) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+    }
+
+    empty.classList.add('hidden');
+    list.innerHTML = state.mails.map((mail, i) => {
+        const hasCode = mail.code && mail.code.trim();
+        const time = formatTime(mail.received_at);
+        const fromDisplay = (mail.from || '').replace(/<.*>/, '').trim() || mail.from || '鏈煡鍙戜欢浜?;
+        return `
+        <div class="mail-item" onclick="openMail(${i})">
+            <div class="mail-item-icon ${hasCode ? 'has-code' : ''}">
+                ${hasCode ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>` : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                </svg>`}
+            </div>
+            <div class="mail-item-body">
+                <div class="mail-item-subject">${escHtml(mail.subject || '(鏃犱富棰?')}</div>
+                <div class="mail-item-from">${escHtml(fromDisplay)}</div>
+            </div>
+            <div class="mail-item-right">
+                <span class="mail-item-time">${time}</span>
+                ${hasCode ? `<span class="mail-item-code">${escHtml(mail.code)}</span>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ===== Open Mail Detail =====
+async function openMail(index) {
+    const mail = state.mails[index];
+    if (!mail) return;
+
+    hideAll();
+    const detail = document.getElementById('mailDetail');
+    detail.classList.remove('hidden');
+
+    document.getElementById('detailSubject').textContent = mail.subject || '(鏃犱富棰?';
+    document.getElementById('detailFrom').textContent = '鏉ヨ嚜: ' + (mail.from || '鏈煡');
+    document.getElementById('detailDate').textContent = formatTime(mail.received_at);
+
+    // Code section
+    const codeSection = document.getElementById('detailCodeSection');
+    if (mail.code && mail.code.trim()) {
+        codeSection.classList.remove('hidden');
+        document.getElementById('detailCode').textContent = mail.code;
+    } else {
+        codeSection.classList.add('hidden');
+    }
+
+    // Body - try to load detail if we have message_id
+    const body = document.getElementById('detailBody');
+    if (mail.html_body && mail.html_body.length > 20) {
+        renderHtmlBody(body, mail.html_body);
+    } else if (mail.body) {
+        body.textContent = mail.body;
+    } else if (mail.message_id && state.activeToken) {
+        body.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>鍔犺浇閭欢鍐呭...</p></div>';
+        try {
+            const detail = await fetchMailDetail(state.activeToken, mail.message_id);
+            if (detail.html_body && detail.html_body.length > 20) {
+                renderHtmlBody(body, detail.html_body);
+            } else {
+                body.textContent = detail.body || '(鏃犲唴瀹?';
+            }
+        } catch {
+            body.textContent = mail.body || '(鏃犳硶鍔犺浇璇︽儏)';
+        }
+    } else {
+        body.textContent = '(鏃犲唴瀹?';
+    }
+}
+
+function renderHtmlBody(container, html) {
+    const iframe = document.createElement('iframe');
+    iframe.sandbox = 'allow-same-origin';
+    container.innerHTML = '';
+    container.appendChild(iframe);
+    iframe.srcdoc = html;
+    iframe.onload = () => {
+        try {
+            const h = iframe.contentDocument.body.scrollHeight;
+            iframe.style.height = Math.min(h + 30, 800) + 'px';
+        } catch {}
+    };
+}
+
+function closeMailDetail() {
+    document.getElementById('mailDetail').classList.add('hidden');
+    document.getElementById('inboxView').classList.remove('hidden');
+}
+
+// ===== Refresh =====
+async function refreshInbox() {
+    if (!state.activeToken) return;
+    const entry = state.tokens.find(t => t.token === state.activeToken);
+    if (!entry) return;
+
+    try {
+        const [codeData, mailsData] = await Promise.all([
+            fetchCode(entry.token).catch(() => null),
+            fetchMails(entry.token),
+        ]);
+
+        const oldCode = state.latestCode?.code;
+        state.latestCode = codeData;
+        state.mails = mailsData.mails || [];
+
+        renderCode();
+        renderMailList();
+
+        // Flash if new code arrived
+        if (codeData?.code && codeData.code !== oldCode) {
+            showToast(`鏂伴獙璇佺爜: ${codeData.code}`, 'success');
+        }
+    } catch (err) {
+        showToast('鍒锋柊澶辫触: ' + err.message, 'error');
+    }
+}
+
+function retryLoad() {
+    if (!state.activeToken) return;
+    const entry = state.tokens.find(t => t.token === state.activeToken);
+    if (entry) loadInbox(entry);
+}
+
+// ===== Auto Refresh =====
+function toggleAutoRefresh() {
+    const on = document.getElementById('autoRefreshToggle').checked;
+    if (on) {
+        refreshInbox();
+        state.autoRefreshTimer = setInterval(refreshInbox, 30000);
+    } else {
+        stopAutoRefresh();
+    }
+}
+
+function stopAutoRefresh() {
+    if (state.autoRefreshTimer) {
+        clearInterval(state.autoRefreshTimer);
+        state.autoRefreshTimer = null;
+    }
+    const toggle = document.getElementById('autoRefreshToggle');
+    if (toggle) toggle.checked = false;
+}
+
+// ===== View State Helpers =====
+function hideAll() {
+    ['welcomeState', 'loadingState', 'errorState', 'inboxView', 'mailDetail'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+    });
+}
+
+function showWelcome() {
+    hideAll();
+    document.getElementById('welcomeState').classList.remove('hidden');
+}
+
+function showLoading() {
+    hideAll();
+    document.getElementById('loadingState').classList.remove('hidden');
+}
+
+function showError(msg) {
+    hideAll();
+    document.getElementById('errorState').classList.remove('hidden');
+    document.getElementById('errorMessage').textContent = msg || '璇锋鏌?Token 鏄惁姝ｇ‘';
+}
+
+// ===== Copy Helpers =====
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        showToast('楠岃瘉鐮佸凡澶嶅埗: ' + code, 'success');
+    }).catch(() => {
+        fallbackCopy(code);
+        showToast('楠岃瘉鐮佸凡澶嶅埗', 'success');
+    });
+}
+
+function copyEmail() {
+    const addr = document.getElementById('currentEmailAddress').textContent;
+    if (addr && addr !== '鈥?) {
+        navigator.clipboard.writeText(addr).then(() => {
+            showToast('閭鍦板潃宸插鍒?, 'success');
+        }).catch(() => fallbackCopy(addr));
+    }
+}
+
+function copyDetailCode() {
+    const code = document.getElementById('detailCode').textContent;
+    if (code && code !== '鈥?) copyCode(code);
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+}
+
+// ===== Toast =====
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(40px)';
+        toast.style.transition = '0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ===== Theme =====
+function initTheme() {
+    const saved = localStorage.getItem('luckmail_theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('themeToggle').addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('luckmail_theme', next);
+    });
+}
+
+// ===== Mobile Sidebar =====
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ===== Utilities =====
+function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function formatTime(dateStr) {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        const now = new Date();
+        const diff = now - d;
+        if (diff < 60000) return '鍒氬垰';
+        if (diff < 3600000) return Math.floor(diff / 60000) + ' 鍒嗛挓鍓?;
+        if (diff < 86400000) return Math.floor(diff / 3600000) + ' 灏忔椂鍓?;
+        if (diff < 604800000) return Math.floor(diff / 86400000) + ' 澶╁墠';
+        return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch {
+        return dateStr;
+    }
+}
+</script>
 </body>
 </html>
+
